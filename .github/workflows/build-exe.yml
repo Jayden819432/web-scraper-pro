@@ -1,0 +1,100 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        
+    - name: Build GUI EXE with PyInstaller
+      run: |
+        pyinstaller --onefile --windowed --name "WebScraperPro" --icon=NONE --add-data "README.md;." scraper_gui.py
+        
+    - name: Build CLI EXE with PyInstaller
+      run: |
+        pyinstaller --onefile --name "WebScraperCLI" --icon=NONE scraper.py
+        
+    - name: Create Release Package
+      run: |
+        mkdir release
+        copy dist\WebScraperPro.exe release\
+        copy dist\WebScraperCLI.exe release\
+        copy README.md release\
+        copy requirements.txt release\
+        
+    - name: Upload GUI Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: WebScraperPro-GUI
+        path: release/WebScraperPro.exe
+        
+    - name: Upload CLI Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: WebScraperCLI
+        path: release/WebScraperCLI.exe
+        
+    - name: Upload Full Release Package
+      uses: actions/upload-artifact@v3
+      with:
+        name: WebScraper-Complete-Package
+        path: release/
+        
+    - name: Create GitHub Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v1.0.${{ github.run_number }}
+        name: Web Scraper Pro v1.0.${{ github.run_number }}
+        body: |
+          ## 🕷️ Web Scraper & API Discovery Tool - Professional Edition
+          
+          ### What's Included:
+          - ✅ **WebScraperPro.exe** - Professional GUI version with modern interface
+          - ✅ **WebScraperCLI.exe** - Command-line version for automation
+          - ✅ Full source code and documentation
+          
+          ### Features:
+          - 🌐 Scrape any website automatically
+          - 🔍 Discover hidden API endpoints
+          - 📡 Capture all network traffic
+          - 💾 Save results in JSON, HTML, and TXT formats
+          - 🎯 Professional Windows interface
+          
+          ### How to Use:
+          1. Download **WebScraperPro.exe** for GUI version
+          2. Run it (no installation needed!)
+          3. Enter any URL and click "Start Scraping"
+          4. Results will be saved in the "scrape_results" folder
+          
+          ### Requirements:
+          - Windows 10/11
+          - Google Chrome or Chromium browser installed
+          
+          **Note:** Windows may show a security warning on first run. Click "More info" → "Run anyway"
+        files: |
+          release/WebScraperPro.exe
+          release/WebScraperCLI.exe
+          release/README.md
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
