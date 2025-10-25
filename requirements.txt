@@ -1,0 +1,5 @@
+selenium>=4.37.0
+selenium-wire>=5.1.0
+webdriver-manager>=4.0.2
+requests>=2.32.0
+blinker<1.8
